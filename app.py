@@ -14,7 +14,8 @@ from server.bot import Bot
 FORMAT = '%(asctime)-15s : %(levelname)s : %(message)s'
 SECRET = os.environ.get('SECRET_KEY', 'there_is_no_secret')
 LOGLEVEL = os.environ.get('LOG_LEVEL')
-PORT = os.environ.get('PORT', 5000)
+PORT = int(os.environ.get('PORT', 5000))
+REDIS_URL = os.environ.get('REDIS_URL')
 
 levels = {'debug': logging.DEBUG,
           'info': logging.INFO,
@@ -22,6 +23,7 @@ levels = {'debug': logging.DEBUG,
 
 app = Flask(__name__, static_url_path='/static')
 app.config['SECRET_KEY'] = SECRET
+app.config['REDIS_URL'] = REDIS_URL
 
 socketio = SocketIO(app)
 redis_store = FlaskRedis(app)
@@ -41,7 +43,12 @@ if os.environ.get('HEROKU') is None and os.environ.get('FILE_LOG') is not None:
 @socketio.on('names')
 def get_names(data):
     requested_name = data['name']
-    names = redis_store.get('names').decode()
+    saved_redis = redis_store.get('names')
+    if not saved_redis:
+        emit('accept_name', {'req_name': 'ok'})
+        return
+
+    names = saved_redis.decode()
     logger.info('active names: %s / %s' % (str(names),
                                            str(requested_name)))
     arr_names = []
@@ -197,4 +204,5 @@ def index():
     return app.send_static_file('index.html')
 
 if __name__ == '__main__':
+    logger.info('socketio rn on %s' % PORT)
     socketio.run(app, port=PORT)

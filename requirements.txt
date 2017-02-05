@@ -1,8 +1,7 @@
-eventlet
+gevent
 gunicorn
 flask
 flask-socketio
-flask-login
 flask-redis
 requests
 lxml

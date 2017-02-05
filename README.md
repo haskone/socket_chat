@@ -17,5 +17,4 @@ Simple chat based on socket.io
     - '@bot mean of 1 2.5 3' - print mean of numbers
 
 - print 'incorrect command' to a user in case of any command error
-
 - logging to file
