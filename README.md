@@ -1,7 +1,8 @@
 Simple chat based on socket.io
 
-- just 'setname', a real registration will be added later
+- just 'setname' for 'register' your name
 - using Redis for keeping active rooms, names, history
+- link preview
 
 - control
     - '@help' - print all possible commands with a short description
