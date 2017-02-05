@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import logging
 import json
 
@@ -9,12 +10,11 @@ from flask import Flask
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from server.bot import Bot
-import config
 
 FORMAT = '%(asctime)-15s : %(levelname)s : %(message)s'
-FILELOG = config.FILE_LOG
-SECRET = config.SECRET_KEY
-LOGLEVEL = config.LOG_LEVEL
+SECRET = os.environ.get('SECRET_KEY')
+LOGLEVEL = os.environ.get('LOG_LEVEL')
+PORT = os.environ.get('PORT')
 
 levels = {'debug': logging.DEBUG,
           'info': logging.INFO,
@@ -30,10 +30,12 @@ logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('server')
 logger.setLevel(levels.get(LOGLEVEL, logging.DEBUG))
 
-hdlr = logging.FileHandler(FILELOG)
-formatter = logging.Formatter(FORMAT)
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr)
+if os.environ.get('HEROKU') is None:
+    FILELOG = os.environ.get('FILE_LOG')
+    hdlr = logging.FileHandler(FILELOG)
+    formatter = logging.Formatter(FORMAT)
+    hdlr.setFormatter(formatter)
+    logger.addHandler(hdlr)
 
 
 # TODO: check user input and return some fail response
@@ -197,4 +199,4 @@ def index():
     return app.send_static_file('index.html')
 
 if __name__ == '__main__':
-    socketio.run(app)
+    socketio.run(app, port=PORT)
