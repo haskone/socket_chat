@@ -12,7 +12,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 from server.bot import Bot
 
 FORMAT = '%(asctime)-15s : %(levelname)s : %(message)s'
-SECRET = os.environ.get('SECRET_KEY')
+SECRET = os.environ.get('SECRET_KEY', 'there_is_no_secret')
 LOGLEVEL = os.environ.get('LOG_LEVEL')
 PORT = os.environ.get('PORT', 5000)
 
@@ -37,8 +37,6 @@ if os.environ.get('HEROKU') is None and os.environ.get('FILE_LOG') is not None:
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr)
 
-
-# TODO: check user input and return some fail response
 
 @socketio.on('names')
 def get_names(data):
