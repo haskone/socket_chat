@@ -14,7 +14,7 @@ from server.bot import Bot
 FORMAT = '%(asctime)-15s : %(levelname)s : %(message)s'
 SECRET = os.environ.get('SECRET_KEY')
 LOGLEVEL = os.environ.get('LOG_LEVEL')
-PORT = os.environ.get('PORT')
+PORT = os.environ.get('PORT', 5000)
 
 levels = {'debug': logging.DEBUG,
           'info': logging.INFO,
@@ -30,7 +30,7 @@ logging.basicConfig(format=FORMAT)
 logger = logging.getLogger('server')
 logger.setLevel(levels.get(LOGLEVEL, logging.DEBUG))
 
-if os.environ.get('HEROKU') is None:
+if os.environ.get('HEROKU') is None and os.environ.get('FILE_LOG') is not None:
     FILELOG = os.environ.get('FILE_LOG')
     hdlr = logging.FileHandler(FILELOG)
     formatter = logging.Formatter(FORMAT)
