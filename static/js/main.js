@@ -32,7 +32,8 @@ function printHelp() {
 
 $( document ).ready(function() {
 
-    var socket = io.connect();
+    var origin = window.location.origin;
+    var socket = io.connect(origin);
     // TODO: get name from login-procedure
     var username = sessionStorage['username'] || null;
     var try_name = '';
