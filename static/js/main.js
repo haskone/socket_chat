@@ -1,9 +1,39 @@
+function previewLink(link) {
+    wrappedLink = '<a id="demo" href=' + link + '>' + link + '</a>';
+    return wrappedLink;
+}
+
+function checkLink(message) {
+    //some dummy check
+    return (message.search('http://') >= 0 || message.search('https://') >= 0);
+}
+
+function urlify(text, id) {
+    var urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, function(url) {
+        return '<a id="' + id + '" href="' + url + '">' + url + '</a>';
+    })
+}
+
 function printMessageFromUser(user, message, room) {
+    var linkContainer = '';
+    var id = sessionStorage['id'] + 1 || 1;
+    sessionStorage['id'] = id;
+    if (checkLink(message)) {
+        message = urlify(message, id);
+        linkContainer = '<div class="urlive-container' + id + '"></div>';
+    }
+
     var container = "<div class='row message-bubble'>" +
                     "<p class='text-muted'>" + user + ' (' + room + ')' + "</p>" +
-                    "<p>" + message + "</p></div>";
+                    "<p>" + message + "</p>" + linkContainer + "</div>";
+
     $('#messages-container').append(container);
     $('html, body').animate({scrollTop:$(document).height()}, 'slow');
+
+    $('#' + id).urlive({ container: '.urlive-container' + id }).hover(function(){
+        $(this).urlive('open');
+    });
 }
 
 function printMessageInfo(message) {
