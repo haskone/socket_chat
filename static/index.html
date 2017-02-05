@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chat</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/main.css" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+    <script src="/static/js/main.js"></script>
+  </head>
+  <body>
+    <div class="container">
+        <div class="row">
+            <div class="panel panel-default">
+              <div class="panel-heading">Chat</div>
+              <div class="panel-body">
+                <div class="container" id="messages-container">
+                    <div class="row message-bubble">
+                        <p class="text-muted">Put @help to see base commands. Any command starts with @</p>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                     <div class="input-group">
+                      <input type="text" class="form-control" id="input-text">
+                      <span class="input-group-btn">
+                        <button class="btn btn-default send-to-server" type="button" id="send">Send</button>
+                      </span>
+                    </div>
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+  </body>
+</html>
