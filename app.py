@@ -10,6 +10,7 @@ from flask import Flask
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from server.bot import Bot
+from server.utils import filter_input
 
 FORMAT = '%(asctime)-15s : %(levelname)s : %(message)s'
 SECRET = os.environ.get('SECRET_KEY', 'there_is_no_secret')
@@ -42,10 +43,12 @@ if os.environ.get('HEROKU') is None and os.environ.get('FILE_LOG') is not None:
 
 @socketio.on('names')
 def get_names(data):
-    requested_name = data['name']
+    requested_name = filter_input(data['name'])
+
     saved_redis = redis_store.get('names')
     if not saved_redis:
         emit('accept_name', {'req_name': 'ok'})
+        redis_store.set('names', requested_name)
         return
 
     names = saved_redis.decode()
@@ -72,11 +75,11 @@ def bot_handler(data):
         - mean of <list numbers int|double>
         - news --- post random news (header + link) from news.ycombinator.com
     """
-    username = data['username']
-    command = data['command']
-    room = data['room']
+    username = filter_input(data['username'])
+    command = filter_input(data['command'])
+    room = filter_input(data['room'])
 
-    logger.info('got command for bot: %s' % str(command))
+    logger.debug('got command for bot: %s' % str(command))
     result = Bot.process(data=command, logger=logger)
 
     response = 'Yeah, I got your command, %s.' % username
@@ -86,16 +89,16 @@ def bot_handler(data):
 
 @socketio.on('history')
 def get_history(data):
-    query = data['query']
-    room = data['room']
+    query = filter_input(data['query'])
+    room = filter_input(data['room'])
 
     history = redis_store.get('history:%s' % room)
-    logger.info('get history: %s' % str(history))
+    logger.debug('get history: %s' % str(history))
 
     if history:
         result = []
         json_history = json.loads(history.decode())
-        logger.info('parsed history: %s' % str(json_history))
+        logger.debug('parsed history: %s' % str(json_history))
 
         for item in json_history:
             if query in item['message']:
@@ -112,22 +115,22 @@ def get_history(data):
 
 @socketio.on('message')
 def handle_message(data):
-    logger.info('get message: %s' % str(data))
-    # TODO: check data
-    username = data['username']
-    room = data['room']
-    message = data['message']
+    username = filter_input(data['username'])
+    room = filter_input(data['room'])
+    message = filter_input(data['message'])
+
+    logger.debug('get message: %s' % str(data))
     emit('response', {'username': username, 'message': message, 'room': room}, room=room)
 
     item = {'username': username, 'message': message}
     history = redis_store.get('history:%s' % room)
     if not history:
-        logger.info('new, push to history: %s' % str([item]))
+        logger.debug('new, push to history: %s' % str([item]))
         redis_store.set('history:%s' % room, json.dumps([item]))
     else:
         json_history = json.loads(history.decode())
         json_history.append(item)
-        logger.info('push to history: %s' % str(json_history))
+        logger.debug('push to history: %s' % str(json_history))
         redis_store.set('history:%s' % room, json.dumps(json_history))
 
 
@@ -135,8 +138,8 @@ def handle_message(data):
 def get_rooms():
     rooms = redis_store.hgetall('rooms')
     rooms = [room.decode() for room in rooms.keys()]
-    logger.info('ask rooms, send: %s' % str(rooms))
     emit('info', {'rooms': rooms})
+    logger.debug('ask rooms, send: %s' % str(rooms))
 
 
 @socketio.on('connect')
@@ -153,20 +156,21 @@ def on_disconnect():
 
 @socketio.on('join')
 def on_join(data):
-    logger.info('join request: %s' % str(data))
-    username = data['username']
-    room = data['room']
+    username = filter_input(data['username'])
+    room = filter_input(data['room'])
+
+    logger.debug('join request: %s' % str(data))
     room_byte = room.encode()
     # TODO: check room name. Remove ':' and etc
     join_room(room)
 
-    rooms = redis_store.hgetall("rooms")
-    logger.info('available rooms: %s' % str(rooms))
-    logger.info('request: %s / %s' % (str(username), str(room)))
+    rooms = redis_store.hgetall('rooms')
+    logger.debug('available rooms: %s' % str(rooms))
+    logger.debug('request: %s / %s' % (username, room))
 
     if room_byte in rooms:
         members = rooms[room_byte].decode()
-        logger.info('members: %s' % (str(members)))
+        logger.debug('members: %s' % (str(members)))
         if username not in members:
             members = members + ':' + username
     else:
@@ -179,13 +183,14 @@ def on_join(data):
 
 @socketio.on('leave')
 def on_leave(data):
-    logger.info('leave request: %s' % str(data))
-    username = data['username']
-    room = data['room'].encode()
+    username = filter_input(data['username'])
+    room = filter_input(data['room']).encode()
+
+    logger.debug('leave request: %s' % str(data))
     rooms = redis_store.hgetall("rooms")
 
     members = rooms[room].decode()
-    logger.info('members in %s: %s' % (str(room), str(members)))
+    logger.debug('members in %s: %s' % (str(room), str(members)))
 
     if members:
         filtered = [member for member in members.split(':') if member != username]
@@ -204,5 +209,5 @@ def index():
     return app.send_static_file('index.html')
 
 if __name__ == '__main__':
-    logger.info('socketio rn on %s' % PORT)
+    logger.info('run on %s' % PORT)
     socketio.run(app, port=PORT)

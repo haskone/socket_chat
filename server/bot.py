@@ -46,7 +46,7 @@ class Bot(object):
         else:
             return result
 
-    # TODO: yeah, it's not appropriate way.
+    # TODO: yeah, it's not an appropriate way.
     # TODO: Need to a separate service for such long operations
     @classmethod
     def news_handler(cls, logger):

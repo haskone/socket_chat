@@ -21,8 +21,8 @@ function printHelp() {
                       '"@join room-name" - join to a room<br>' +
                       '"@leave" - leave the current room<br>' +
                       '"@history text" - find message which contains specified text<br>' +
-                      '"@bot news" - post random news from news.ycombinator.com' +
-                      '"@bot sum of 1 2 3.2" - print sum of numbers' +
+                      '"@bot news" - post random news from news.ycombinator.com<br>' +
+                      '"@bot sum of 1 2 3.2" - print sum of numbers<br>' +
                       '"@bot mean of 1.5 2 3" - print mean of numbers';
     var container = "<div class='row message-bubble'>" +
                     "<p class='text-muted'>" + helpMessage + "</p></div>";
@@ -51,8 +51,12 @@ $( document ).ready(function() {
     }
 
     function leave() {
-        socket.emit('leave', {'username': username, 'room': currentRoom});
-        join('default');
+        if (currentRoom == 'default') {
+            printMessageInfo('You can\'t leave the default room');
+        } else {
+            socket.emit('leave', {'username': username, 'room': currentRoom});
+            join('default');
+        }
     }
 
     function rooms() {
@@ -107,7 +111,7 @@ $( document ).ready(function() {
         if (status == 'ok') {
             username = try_name;
             sessionStorage['username'] = username;
-            printMessageInfo('Now you are know as ' + name);
+            printMessageInfo('Now you are known as ' + name);
             connect();
         } else if (status == 'no') {
             printMessageInfo('Already used. Try another name');
@@ -134,11 +138,11 @@ $( document ).ready(function() {
 
     var commandHandler = {'@help': printHelp,
                           '@rooms': rooms,
-                          '@join': join,
-                          '@leave': leave,
-                          '@setname': setname,
-                          '@history': history,
-                          '@bot': bot};
+                          '@leave': leave};
+    var commandHandlerParams = {'@join': join,
+                                '@setname': setname,
+                                '@history': history,
+                                '@bot': bot};
 
     function inputHandling() {
         var msg = $('#input-text').val();
@@ -150,29 +154,26 @@ $( document ).ready(function() {
             return
         }
 
-        // TODO: fix checking
         if (msg.startsWith("@")) {
             var splitted = msg.split(' ');
             var command = splitted[0];
-            console.log(command);
-            // TODO: add some checking
-            if (splitted.length == 1) {
-                console.log('without params');
-                commandHandler[command]();
-            } else if (splitted.length == 2) {
-                console.log('with params');
-                var param = splitted[1];
-                commandHandler[command](param);
-            } else {
-                if (splitted[0] == '@bot') {
-                    console.log('bot handler');
-                    commandHandler[command](msg.substr(command.length + 1));
-                } else {
-                    console.log('incorrect');
-                    printMessageInfo('Incorrect command. Use @help and try again');
+            var params = msg.substr(command.length + 1)
+            console.log('command: ' + command);
+            console.log('params: ' + params);
+            if (command in commandHandler) {
+                if (params) {
+                    printMessageInfo('This command ignores any arguments');
                 }
+                commandHandler[command]();
+            } else if (command in commandHandlerParams) {
+                if (params) {
+                    commandHandlerParams[command](params);
+                } else {
+                    printMessageInfo('This command requires some arguments. Use @help and try again');
+                }
+            } else{
+                printMessageInfo('Incorrect command. Use @help and try again');
             }
-
         } else {
             post(msg);
         }

@@ -3,7 +3,7 @@ Simple chat based on socket.io
 - just 'setname', a real registration will be added later
 - using Redis for keeping active rooms, names, history
 
-- control. Respond only to the user???
+- control
     - '@help' - print all possible commands with a short description
     - '@setname <name>' - define a name for the current user
     - '@rooms' - get list of active rooms    
@@ -16,5 +16,5 @@ Simple chat based on socket.io
     - '@bot sum of 1 2.5 3' - print sum of numbers
     - '@bot mean of 1 2.5 3' - print mean of numbers
 
-- print 'incorrect command' to a user in case of any command error
+- print 'incorrect command' to the user in case of any command error
 - logging to file
