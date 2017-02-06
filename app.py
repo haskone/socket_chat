@@ -17,6 +17,7 @@ SECRET = os.environ.get('SECRET_KEY', 'there_is_no_secret')
 LOGLEVEL = os.environ.get('LOG_LEVEL')
 PORT = int(os.environ.get('PORT', 5000))
 REDIS_URL = os.environ.get('REDIS_URL')
+DEFAULT_ROOM_NAME = 'default'
 
 levels = {'debug': logging.DEBUG,
           'info': logging.INFO,
@@ -159,8 +160,15 @@ def on_disconnect():
 
 @socketio.on('join')
 def on_join(data):
+    # TODO: too many trust to user input
     username = filter_input(data['username'])
-    room = filter_input(data['room'])
+    room_from = filter_input(data['room_from'])
+    room = filter_input(data['room_new'])
+
+    if room_from != DEFAULT_ROOM_NAME:
+        logger.debug('leave non-default room %s' % room_from)
+        leave_room(room_from)
+        emit('info', {'info': username + ' has left the room %s.' % room_from}, room=room_from)
 
     logger.debug('join request: %s' % str(data))
     room_byte = room.encode()
@@ -181,30 +189,37 @@ def on_join(data):
 
     rooms[room_byte] = members
     redis_store.hmset('rooms', rooms)
+
     emit('info', {'info': username + ' has entered the room %s.' % room}, room=room)
 
 
 @socketio.on('leave')
 def on_leave(data):
+    # TODO: too many trust to user input
     username = filter_input(data['username'])
-    room = filter_input(data['room']).encode()
+    room = filter_input(data['room'])
+    byte_room = room.encode()
 
     logger.debug('leave request: %s' % str(data))
     rooms = redis_store.hgetall("rooms")
 
-    members = rooms[room].decode()
-    logger.debug('members in %s: %s' % (str(room), str(members)))
+    logger.debug('members in %s: %s' % (str(room), str(byte_room)))
+    members = rooms[byte_room].decode()
 
     if members:
         filtered = [member for member in members.split(':') if member != username]
         if len(filtered) > 1:
-            rooms[room] = ':'.join(filtered)
+            rooms[byte_room] = ':'.join(filtered)
             redis_store.hmset('rooms', rooms)
         else:
             redis_store.hdel('rooms', room)
 
-    leave_room(room)
-    emit('info', {'info': username + ' has left the room %s.' % room.decode()}, room=room)
+    # else-case won't be possible with a default client
+    if room != DEFAULT_ROOM_NAME:
+        logger.debug('leave non-default room %s' % room)
+        emit('leave_room')
+        emit('info', {'info': username + ' has left the room %s.' % room}, room=room)
+        leave_room(room)
 
 
 @app.route('/')

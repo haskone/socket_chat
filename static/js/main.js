@@ -15,7 +15,7 @@ function urlify(text, id) {
     })
 }
 
-function printMessageFromUser(user, message, room) {
+function printMessageFromUser(user, message, room, owner) {
     var linkContainer = '';
     var id = sessionStorage['id'] + 1 || 1;
     sessionStorage['id'] = id;
@@ -24,8 +24,13 @@ function printMessageFromUser(user, message, room) {
         linkContainer = '<div class="urlive-container' + id + '"></div>';
     }
 
+    if (owner) {
+        classUserMsg = 'bg-primary';
+    } else {
+        classUserMsg = 'text-muted';
+    }
     var container = "<div class='row message-bubble'>" +
-                    "<p class='text-muted'>" + user + ' (' + room + ')' + "</p>" +
+                    "<p class='" + classUserMsg + "'>" + user + ' (' + room + ')' + "</p>" +
                     "<p>" + message + "</p>" + linkContainer + "</div>";
 
     $('#messages-container').append(container);
@@ -62,30 +67,31 @@ function printHelp() {
 
 $( document ).ready(function() {
 
+    var default_room = 'default';
     var origin = window.location.origin;
     var socket = io.connect(origin);
     // TODO: get name from login-procedure
     var username = sessionStorage['username'] || null;
     var try_name = '';
-    var currentRoom = sessionStorage['room'] || 'default';
+    var currentRoom = sessionStorage['room'] || default_room;
 
     function connect() {
-        printMessageInfo('You has been successfully connected as ' + username);
+        printMessageInfo('You has been successfully connected as ' + username + ' to ' + currentRoom + ' room');
         join(currentRoom);
     }
 
     function join(room) {
+        socket.emit('join', {'username': username, 'room_new': room, 'room_from': currentRoom});
         currentRoom = room;
         sessionStorage['room'] = currentRoom;
-        socket.emit('join', {'username': username, 'room': room});
     }
 
     function leave() {
-        if (currentRoom == 'default') {
-            printMessageInfo('You can\'t leave the default room');
+        if (currentRoom == default_room) {
+            printMessageInfo('You can\'t leave the default room.');
         } else {
             socket.emit('leave', {'username': username, 'room': currentRoom});
-            join('default');
+            currentRoom = default_room;
         }
     }
 
@@ -121,6 +127,10 @@ $( document ).ready(function() {
         }
     });
 
+    socket.on('leave_room', function() {
+        join(default_room);
+    });
+
     // handle common info messages from the server
     socket.on('info', function(data) {
         if ('info' in data) {
@@ -132,7 +142,7 @@ $( document ).ready(function() {
 
     socket.on('bot_response', function(data) {
         if ('response' in data) {
-            printMessageFromUser('BOT', data['response'], currentRoom);
+            printMessageFromUser('BOT', data['response'], currentRoom, false);
         }
     });
 
@@ -163,7 +173,7 @@ $( document ).ready(function() {
     });
 
     socket.on('response', function(msg){
-        printMessageFromUser(msg['username'], msg['message'], msg['room']);
+        printMessageFromUser(msg['username'], msg['message'], msg['room'], msg['username'] == username);
     });
 
     var commandHandler = {'@help': printHelp,
