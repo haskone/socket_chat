@@ -144,9 +144,10 @@ def handle_message(data):
     to = filter_input(data['to'])
     message = filter_input(data['message'])
 
-    to_sid = redis_store.get(to).decode()
+    to_sid = redis_store.get(to)
     logger.debug('get private message: %s / to: %s' % (str(data), to_sid))
     if to_sid:
+        to_sid = to_sid.decode()
         emit('response_private', {'username': username, 'message': message}, room=to_sid)
         emit('response_private', {'username': username, 'message': message})
     else:
@@ -170,11 +171,12 @@ def on_connect():
 
 @socketio.on('disconnect')
 def on_disconnect():
-    req_name = redis_store.get(request.sid).decode()
+    req_name = redis_store.get(request.sid)
     names = redis_store.get('names')
 
-    logger.info('try to erase %s / %s' % (req_name, names))
     if names:
+        req_name = req_name.decode()
+        logger.info('try to erase %s / %s' % (req_name, names))
         arr_names = names.decode().split(':')
         updated_arr = [name for name in arr_names if name != req_name]
         redis_store.set('names', ':'.join(updated_arr))
