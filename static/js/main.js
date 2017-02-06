@@ -15,7 +15,7 @@ function urlify(text, id) {
     })
 }
 
-function printMessageFromUser(user, message, room, owner) {
+function printMessageFromUser(user, message, type, room) {
     var linkContainer = '';
     var id = sessionStorage['id'] + 1 || 1;
     sessionStorage['id'] = id;
@@ -24,10 +24,12 @@ function printMessageFromUser(user, message, room, owner) {
         linkContainer = '<div class="urlive-container' + id + '"></div>';
     }
 
-    if (owner) {
+    if (type == 'own') {
         classUserMsg = 'bg-primary';
-    } else {
+    } else if (type == 'common') {
         classUserMsg = 'text-muted';
+    } else if (type == 'private') {
+        classUserMsg = 'bg-success';
     }
     var container = "<div class='row message-bubble'>" +
                     "<p class='" + classUserMsg + "'>" + user + ' (' + room + ')' + "</p>" +
@@ -55,6 +57,7 @@ function printHelp() {
                       '"@rooms" - get list of active rooms<br>' +
                       '"@join room-name" - join to a room<br>' +
                       '"@leave" - leave the current room<br>' +
+                      '"@private user text" - send to a specific user<br>' +
                       '"@history piece_of_text_you_looking_for" - find message which contains specified text<br>' +
                       '"@bot news" - post random news from news.ycombinator.com<br>' +
                       '"@bot sum of 1 2 3.2" - print sum of numbers<br>' +
@@ -105,6 +108,12 @@ $( document ).ready(function() {
                                 'room': currentRoom});
     }
 
+    function private(to, message) {
+        socket.emit('message_private', {'username': username,
+                                        'message': message,
+                                        'to': to});
+    }
+
     function setname(name) {
         try_name = name;
         socket.emit('names', {'name': name});
@@ -142,7 +151,7 @@ $( document ).ready(function() {
 
     socket.on('bot_response', function(data) {
         if ('response' in data) {
-            printMessageFromUser('BOT', data['response'], currentRoom, false);
+            printMessageFromUser('BOT', data['response'], 'common', currentRoom);
         }
     });
 
@@ -173,7 +182,16 @@ $( document ).ready(function() {
     });
 
     socket.on('response', function(msg){
-        printMessageFromUser(msg['username'], msg['message'], msg['room'], msg['username'] == username);
+        var color = msg['username'] == username ? 'own' : 'common';
+        printMessageFromUser(msg['username'], msg['message'], color, msg['room']);
+    });
+
+    socket.on('response_private', function(msg){
+        if ('error' in msg) {
+            printMessageInfo('The message has not been sent: ' + msg['error']);
+        } else {
+            printMessageFromUser(msg['username'], msg['message'], 'private', 'private');
+        }
     });
 
     var commandHandler = {'@help': printHelp,
@@ -197,9 +215,9 @@ $( document ).ready(function() {
         if (msg.startsWith("@")) {
             var splitted = msg.split(' ');
             var command = splitted[0];
-            var params = msg.substr(command.length + 1)
+            var params = msg.substr(command.length + 1);
             console.log('command: ' + command);
-            console.log('params: ' + params);
+            console.log('params: ' + params + ' / ' + splitted.length);
             if (command in commandHandler) {
                 if (params) {
                     printMessageInfo('This command ignores any arguments');
@@ -211,7 +229,11 @@ $( document ).ready(function() {
                 } else {
                     printMessageInfo('This command requires some arguments. Use @help and try again');
                 }
-            } else{
+            // TODO: make it in a common way. Looks like a weird hack
+            } else if (command == '@private' && splitted.length >= 2) {
+                var privateMsg = msg.substr(command.length + splitted[1].length + 2);
+                private(splitted[1], privateMsg);
+            } else {
                 printMessageInfo('Incorrect command. Use @help and try again');
             }
         } else {

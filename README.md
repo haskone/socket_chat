@@ -10,6 +10,7 @@ Simple chat based on socket.io
     - '@rooms' - get list of active rooms    
     - '@join <channel-name>' - join to a room
     - '@leave' - leave a current channel
+    - '@private user text' - send to a specific user
     - '@history <text>' - find message which contains specified text
 
 - bots (use @bot <command>). Post to the channel    

@@ -6,7 +6,7 @@ import logging
 import json
 
 from flask_redis import FlaskRedis
-from flask import Flask
+from flask import Flask, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 from server.bot import Bot
@@ -45,8 +45,9 @@ if os.environ.get('HEROKU') is None and os.environ.get('FILE_LOG') is not None:
 @socketio.on('names')
 def get_names(data):
     requested_name = filter_input(data['name'])
-
     saved_redis = redis_store.get('names')
+
+    # TODO: fix code duplication
     if not saved_redis:
         emit('accept_name', {'req_name': 'ok'})
         redis_store.set('names', requested_name)
@@ -134,8 +135,24 @@ def handle_message(data):
     else:
         json_history = json.loads(history.decode())
         json_history.append(item)
-        logger.debug('push to history: %s' % str(json_history))
         redis_store.set('history:%s' % room, json.dumps(json_history))
+
+
+@socketio.on('message_private')
+def handle_message(data):
+    username = filter_input(data['username'])
+    to = filter_input(data['to'])
+    message = filter_input(data['message'])
+
+    to_sid = redis_store.get(to).decode()
+    logger.debug('get private message: %s / to: %s' % (str(data), to_sid))
+    if to_sid:
+        emit('response_private', {'username': username, 'message': message}, room=to_sid)
+        emit('response_private', {'username': username, 'message': message})
+    else:
+        emit('response_private', {'error': 'the user has not found'})
+
+    # TODO: save history for specific user. But why? Need to change @history behavior
 
 
 @socketio.on('rooms')
@@ -153,7 +170,15 @@ def on_connect():
 
 @socketio.on('disconnect')
 def on_disconnect():
-    # TODO: remove name from 'names'
+    req_name = redis_store.get(request.sid).decode()
+    names = redis_store.get('names')
+
+    logger.info('try to erase %s / %s' % (req_name, names))
+    if names:
+        arr_names = names.decode().split(':')
+        updated_arr = [name for name in arr_names if name != req_name]
+        redis_store.set('names', ':'.join(updated_arr))
+
     logger.info('on disconnect')
     emit('info', {'info': 'A user has been disconnected'})
 
@@ -164,6 +189,11 @@ def on_join(data):
     username = filter_input(data['username'])
     room_from = filter_input(data['room_from'])
     room = filter_input(data['room_new'])
+
+    # update sid
+    redis_store.set(username, request.sid)
+    # TODO: temporary hack
+    redis_store.set(request.sid, username)
 
     if room_from != DEFAULT_ROOM_NAME:
         logger.debug('leave non-default room %s' % room_from)
