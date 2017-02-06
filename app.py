@@ -83,7 +83,10 @@ def bot_handler(data):
     result = Bot.process(data=command, logger=logger)
 
     response = 'Yeah, I got your command, %s.' % username
-    response += '</br>See result:</br>%s' % result
+    if result is None:
+        response += "</br>.. but I did not understand it, nothing to show </br>"
+    else:
+        response += '</br>See result:</br>%s' % result
     emit('bot_response', {'response': response}, room=room)
 
 

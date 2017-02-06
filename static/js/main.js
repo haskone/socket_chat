@@ -50,7 +50,7 @@ function printHelp() {
                       '"@rooms" - get list of active rooms<br>' +
                       '"@join room-name" - join to a room<br>' +
                       '"@leave" - leave the current room<br>' +
-                      '"@history text" - find message which contains specified text<br>' +
+                      '"@history piece_of_text_you_looking_for" - find message which contains specified text<br>' +
                       '"@bot news" - post random news from news.ycombinator.com<br>' +
                       '"@bot sum of 1 2 3.2" - print sum of numbers<br>' +
                       '"@bot mean of 1.5 2 3" - print mean of numbers';
