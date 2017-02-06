@@ -60,4 +60,4 @@ class Bot(object):
         href = trs[0].xpath('//a[@class="storylink"]')[item_number].attrib['href']
 
         logger.debug('got "%s" with href "%s"' % (text, href))
-        return '%s</br>(see more here %s)' % (text, href)
+        return '%s</br>(see more here %s )' % (text, href)
