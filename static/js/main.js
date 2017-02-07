@@ -179,7 +179,6 @@ $( document ).ready(function() {
         if (status == 'ok') {
             username = try_name;
             sessionStorage['username'] = username;
-            printMessageInfo('Now you are known as ' + name);
             connect();
         } else if (status == 'no') {
             printMessageInfo('Already used. Try another name');
