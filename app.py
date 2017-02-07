@@ -158,10 +158,10 @@ def handle_message(data):
 
 
 @socketio.on('rooms')
-def get_rooms():
+def get_rooms(data):
     rooms = redis_store.hgetall('rooms')
-    rooms = [room.decode() for room in rooms.keys()]
-    emit('info', {'rooms': rooms})
+    rooms = [room.decode() for room in rooms.keys() if room.decode() != DEFAULT_ROOM_NAME]
+    emit('info', {'rooms': rooms, 'silent_update': 'only_update' in data})
     logger.debug('ask rooms, send: %s' % str(rooms))
 
 

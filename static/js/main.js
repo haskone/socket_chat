@@ -69,6 +69,10 @@ function printHelp() {
 }
 
 $( document ).ready(function() {
+    var autocompleteList = ['@help', '@setname', '@rooms', '@join', '@leave', '@private', '@bot'];
+    $('#input-text').autocomplete({
+        source: autocompleteList
+    });
 
     var default_room = 'default';
     var origin = window.location.origin;
@@ -145,7 +149,22 @@ $( document ).ready(function() {
         if ('info' in data) {
             printMessageInfo(data['info']);
         } else if ('rooms' in data) {
-            printMessageInfo('Available rooms: ' + data['rooms']);
+            if ('silent_update' in data && data['silent_update']) {
+                var rooms = data['rooms'];
+                var forAutoComplete = rooms.map(function(room) {
+                    return '@join ' + room;
+                });
+                var duplicates = autocompleteList.concat(forAutoComplete);
+                var unique = duplicates.filter(function(elem, index, self) {
+                    return index == self.indexOf(elem);
+                });
+                autocompleteList = unique;
+                $('#input-text').autocomplete({
+                    source: autocompleteList
+                });
+            } else {
+                printMessageInfo('Available rooms: ' + data['rooms']);
+            }
         }
     });
 
@@ -204,8 +223,6 @@ $( document ).ready(function() {
 
     function inputHandling() {
         var msg = $('#input-text').val();
-
-        console.log('handle ' + msg);
         if (username == null && !(msg == '@help' || (msg.startsWith('@setname') &&
                                                      msg.split(' ').length == 2))) {
             printMessageInfo('Please set your name first')
@@ -216,8 +233,6 @@ $( document ).ready(function() {
             var splitted = msg.split(' ');
             var command = splitted[0];
             var params = msg.substr(command.length + 1);
-            console.log('command: ' + command);
-            console.log('params: ' + params + ' / ' + splitted.length);
             if (command in commandHandler) {
                 if (params) {
                     printMessageInfo('This command ignores any arguments');
@@ -242,6 +257,16 @@ $( document ).ready(function() {
 
         $('#input-text').val('');
     }
+
+    $('#input-text').keydown(function () {
+        var msg = $('#input-text').val();
+        // there is no sense to update rooms
+        // every keydown but possible to update
+        // just before start joining to some of them
+        if (msg == '@join') {
+            socket.emit('rooms', {'only_update': true});
+        }
+    });
 
     $('#input-text').keypress(function (e) {
         var key = e.which;
