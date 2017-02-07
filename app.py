@@ -54,7 +54,7 @@ def get_names(data):
         return
 
     names = saved_redis.decode()
-    logger.info('active names: %s / %s' % (str(names),
+    logger.debug('active names: %s / %s' % (str(names),
                                            str(requested_name)))
     arr_names = []
     if names:
@@ -176,9 +176,10 @@ def on_disconnect():
 
     if names:
         req_name = req_name.decode()
-        logger.info('try to erase %s / %s' % (req_name, names))
+        logger.debug('try to erase %s / %s' % (req_name, names))
         arr_names = names.decode().split(':')
         updated_arr = [name for name in arr_names if name != req_name]
+        logger.debug('updated %s' % str(updated_arr))
         redis_store.set('names', ':'.join(updated_arr))
 
     logger.info('on disconnect')
