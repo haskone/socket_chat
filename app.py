@@ -144,7 +144,8 @@ def handle_message(data):
     to = filter_input(data['to'])
     message = filter_input(data['message'])
 
-    to_sid = redis_store.get(to)
+    username_sid_map = redis_store.hgetall('username_sid_map')
+    to_sid = username_sid_map[to.encode()]
     logger.debug('get private message: %s / to: %s' % (str(data), to_sid))
     if to_sid:
         to_sid = to_sid.decode()
@@ -171,16 +172,18 @@ def on_connect():
 
 @socketio.on('disconnect')
 def on_disconnect():
-    req_name = redis_store.get(request.sid)
+    username_sid_map = redis_store.hgetall('username_sid_map')
     names = redis_store.get('names')
 
     if names:
-        req_name = req_name.decode()
-        logger.debug('try to erase %s / %s' % (req_name, names))
-        arr_names = names.decode().split(':')
-        updated_arr = [name for name in arr_names if name != req_name]
-        logger.debug('updated %s' % str(updated_arr))
-        redis_store.set('names', ':'.join(updated_arr))
+        for name, sid in username_sid_map.items():
+            if sid.decode() == request.sid:
+                req_name = name.decode()
+                logger.debug('try to erase %s / %s' % (req_name, names))
+                arr_names = names.decode().split(':')
+                updated_arr = [name for name in arr_names if name != req_name]
+                logger.debug('updated %s' % str(updated_arr))
+                redis_store.set('names', ':'.join(updated_arr))
 
     logger.info('on disconnect')
     emit('info', {'info': 'A user has been disconnected'})
@@ -194,9 +197,10 @@ def on_join(data):
     room = filter_input(data['room_new'])
 
     # update sid
-    redis_store.set(username, request.sid)
-    # TODO: temporary hack
-    redis_store.set(request.sid, username)
+    username_sid_map = redis_store.hgetall('username_sid_map')
+    username_sid_map[username] = request.sid
+    logger.debug('updated session map: %s' % str(username_sid_map))
+    redis_store.hmset('username_sid_map', username_sid_map)
 
     if room_from != DEFAULT_ROOM_NAME:
         logger.debug('leave non-default room %s' % room_from)
@@ -234,7 +238,7 @@ def on_leave(data):
     byte_room = room.encode()
 
     logger.debug('leave request: %s' % str(data))
-    rooms = redis_store.hgetall("rooms")
+    rooms = redis_store.hgetall('rooms')
 
     logger.debug('members in %s: %s' % (str(room), str(byte_room)))
     members = rooms[byte_room].decode()
