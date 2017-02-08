@@ -55,7 +55,7 @@ def get_names(data):
 
     names = saved_redis.decode()
     logger.debug('active names: %s / %s' % (str(names),
-                                           str(requested_name)))
+                                            str(requested_name)))
     arr_names = []
     if names:
         arr_names.extend(names.split(':'))
@@ -158,10 +158,10 @@ def handle_message(data):
 
 
 @socketio.on('rooms')
-def get_rooms(data):
+def get_rooms(data=None):
     rooms = redis_store.hgetall('rooms')
     rooms = [room.decode() for room in rooms.keys() if room.decode() != DEFAULT_ROOM_NAME]
-    emit('info', {'rooms': rooms, 'silent_update': 'only_update' in data})
+    emit('info', {'rooms': rooms, 'silent_update': data and 'only_update' in data})
     logger.debug('ask rooms, send: %s' % str(rooms))
 
 
